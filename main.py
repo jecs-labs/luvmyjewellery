@@ -1,6 +1,5 @@
 ################################   Libraries   ################################
 
-import ctypes
 import os.path
 import uuid
 
@@ -9,11 +8,8 @@ import loader
 
 #############################   Global variables   ############################
 
-# Uncomment the source you want to select;
-# for file & rtsp don't forget to change the path in assets\configs\settings.json
-VID_SOURCE = "USB_CAM"
-# VID_SOURCE = "FILE"
-# VID_SOURCE = "RTSP"
+# Camera source configuration
+VID_SOURCE = "USB_CAM"  # Only USB_CAM is supported in browser environment
 
 # Change to True if you need to flip image
 NEED_FLIP = False
@@ -54,27 +50,21 @@ def save_picture(curr_frame):
         None
     """
     # Create the output folder if not exists
-    if not os.path.exists(loader.get_absolute_path("captures", True)):
-        os.makedirs(loader.get_absolute_path("captures", True))
+    captures_dir = os.path.join('captures')
+    if not os.path.exists(captures_dir):
+        os.makedirs(captures_dir)
 
-    filename = r"captures\Capture_"+str(uuid.uuid4())[:6]+".jpg"
-    filename = loader.get_absolute_path(filename, True)
+    filename = os.path.join(captures_dir, f'Capture_{str(uuid.uuid4())[:6]}.jpg')
     # Get a unique filename
     while os.path.exists(filename):
-        filename = r"captures\Capture_" + str(uuid.uuid4())[:6]+".jpg"
-        filename = loader.get_absolute_path(filename, True)
+        filename = os.path.join(captures_dir, f'Capture_{str(uuid.uuid4())[:6]}.jpg')
     cv2.imwrite(filename, curr_frame)
 
 
 ###############################   Main Program   ##############################
 
 if __name__ == "__main__":
-    # Set window icon during .exe execution
-    MY_APP_ID = "asutosh.arjbx.v0.0.1"  # arbitrary string
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(MY_APP_ID)
-
     # Get the source from settings configuration file
-    # print(loader.get_source(VID_SOURCE))
     cam = cv2.VideoCapture(loader.get_source(VID_SOURCE))
     cv2.imshow("preview", loader.generate_loading_screen(HEIGHT, WIDTH))
 
