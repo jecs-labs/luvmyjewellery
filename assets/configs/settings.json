@@ -1,0 +1,12 @@
+{
+    "source": {
+        "USB_CAM": 0,
+        "FILE": "assets/test_video/test.mp4",
+        "RTSP": "rtsp://192.168.1.1:8080/out.h264"
+    },
+    "welcome": [
+        {
+            "text": ""
+        }
+    ]
+}
