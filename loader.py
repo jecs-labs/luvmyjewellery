@@ -26,8 +26,9 @@ def get_absolute_path(path_str: str, from_cwd: bool = False) -> str:
         str: absolute path of the file
     """
     if from_cwd:
-        return os.path.join(os.getcwd(), path_str)
-    return os.path.join(str(BASE_DIR), path_str)
+        # This is required when creating a single executable file
+        return rf"{os.getcwd()}\{path_str}"
+    return rf"{str(BASE_DIR)}\{path_str}"
 
 
 def validate_settings_file():
@@ -39,7 +40,7 @@ def validate_settings_file():
     """
     global sources, np_key
 
-    settings_path = get_absolute_path(os.path.join('assets', 'configs', 'settings.json'))
+    settings_path = get_absolute_path(r"assets\configs\settings.json")
     try:
         settings_file = open(settings_path)
         data = json.load(settings_file)
@@ -63,55 +64,58 @@ def load_settings():
 
     data = validate_settings_file()
     sources = data["source"] if "source" in data else 0
-    sources["FILE"] = get_absolute_path(sources["FILE"].replace("/", os.sep))
+    sources["FILE"] = get_absolute_path(sources["FILE"].replace("/", "\\"))
     loading_screen_data = data["welcome"]
 
 
-def get_source(source_type):
+def get_source(selection: str):
     """
-    Get the source path from settings file.
+    Get the source of the video used in program
 
     Args:
-        source_type (str): type of source to load
+        selection (str): Selected option
     Returns:
-        str: source path
+        int/str: Source of video frame
     """
-    settings = validate_settings_file()
-    if settings:
-        return settings["source"][source_type]
-    return 0  # Default to first webcam if settings not found
+    if not sources:
+        load_settings()
+
+    return sources.get(selection)
 
 
 def load_files():
     """
-    Load the required files into memory.
+    Load the assets and get ready for the program
 
     Returns:
-        tuple: cascade classifier & jewellery data
+        cv2.CascadeClassifier: Returns haarcascade frontalface classifier
+        dict: Jewellery data from the file
     """
-    # Load the cascade file
-    cascade_path = get_absolute_path(os.path.join('assets', 'model', 'haarcascade_frontalface_default.xml'))
-    cascade = cv2.CascadeClassifier(cascade_path)
+    if not sources:
+        load_settings()
 
-    # Load jewellery data
-    jewel_path = get_absolute_path(os.path.join('assets', 'configs', 'jewellery.json'))
+    model_path = get_absolute_path(r"assets\model\haarcascade_frontalface_default.xml")
     try:
-        jewel_file = open(jewel_path)
-        jewelleries = json.load(jewel_file)
-
-        # Update paths to use proper separators
-        for key in jewelleries:
-            jewelleries[key]["path"] = cv2.imread(
-                get_absolute_path(jewelleries[key]["path"]),
-                cv2.IMREAD_UNCHANGED
-            )
-
-        return cascade, jewelleries
+        cascade = cv2.CascadeClassifier(model_path)
     except FileNotFoundError:
-        print(f"Error: Unable to load file {jewel_path}")
+        print(f"Error: Unable to load file {model_path}")
+
+    jewellery_path = get_absolute_path(r"assets\configs\jewellery.json")
+    try:
+        jewellery_file = open(jewellery_path)
+        jewellery_data = json.load(jewellery_file)
+        jewellery_data = {
+            k: {**v, "path": cv2.imread(get_absolute_path(v["path"]), cv2.IMREAD_UNCHANGED)}
+            for k, v in jewellery_data.items()
+        }
+    except FileNotFoundError:
+        print(f"Error: Unable to load file {jewellery_path}")
     except json.decoder.JSONDecodeError:
-        print(f"Error: Corrupt file {jewel_path}")
-    return None, None
+        print(f"Error: Corrupt file {jewellery_path}")
+    except AssertionError:
+        print(f"Error: Corrupt file {jewellery_path}")
+
+    return cascade, jewellery_data
 
 
 def generate_loading_screen(height: int, width: int):
